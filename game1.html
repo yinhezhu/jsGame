@@ -1,0 +1,226 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>无标题文档</title>
+<style>
+*{margin:0;padding:0;}
+#main{width:522px;border:solid 10px #0bc5d6;margin:0 auto;height:584px;position:relative;}
+#main table{height:74px;border-bottom:solid 10px #0bc5d6;width:100%; background:#5a0002;}
+#main table td{font-size:24px;padding-left:10px;color:white;}
+#main table td span{ color:red;}
+#main table td input{padding:5px 10px;}
+#box{height:510px; background:#5a0002;position:relative;}
+#box ul{float:left;display:block;width:50px;position:absolute;bottom:0px; list-style:none;}
+#box ul li{float:left;width:36px;border:6px solid;height:36px;margin-top:3px;}
+#box ul li:active{opacity:.6;}
+#box ul li.blue{ background:#3f94ee;border-color:#4397ef #002de2 #002de2 #4397ef;}
+#box ul li.green{ background:#75bd1b; border-color:#66b21e #016f00 #016f00 #66b21e;}
+#box ul li.red{background:#e13221;  border-color:#d5301a #b60000 #b60000 #d5301a;}
+#box ul li.purple{background:#aa37d4; border-color:#9642d8 #5a01a7 #5a01a7 #9642d8;}
+#mask{position:absolute;bottom:0px;height:48px;border-top:solid 3px #0bc5d6;width:100%; }
+#mask .bg{background:#000; opacity:.3;filter(alpha=30);height:100%;width:100%;}
+</style>
+<script src="js/jQuery.js"></script>
+</head>
+
+<body>
+<div id="main">
+	<table>
+		<tr>
+			<td width="40%">得分:<span id="scope">0</span></td>
+			<td width="50%" id="hint">&nbsp;</td>
+			<td width="10%"><input name="" type="button" value="开始" id="start" /></td>
+		</tr>
+	</table>
+	<div id="box">
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+		<ul></ul>
+	</div>
+	<div id="mask">
+		<div class="bg"></div>
+	</div>
+</div>
+<script>
+function Game(){
+	this.scopeBox = document.getElementById("scope");
+	this.oStart = document.getElementById("start");
+	this.hint = document.getElementById("hint");
+	this.oUl = document.getElementById("box").getElementsByTagName("ul");
+	this.type = ["red","blue","green","purple "];
+	this.timer = null;
+	this.speed = 2000;
+	this.same = [];
+	this.li = document.getElementById("box").getElementsByTagName("li");
+	this.scope = 0;
+	this.oStart.turn = "on";
+}
+Game.prototype = {
+	init : function(){
+		this.scope = 0;
+		this.hint.innerHTML = "";
+		this.scopeBox.innerHTML = "0";
+		for(var i=0;i<10;i++){
+			this.oUl[i].style.left = (50*i + 2*(i+1))+ "px";
+			this.oUl[i].innerHTML = "";
+			this.oUl[i].appendChild(this.randomLi());
+			this.oUl[i].appendChild(this.randomLi());
+		}
+	},
+	start : function(){
+		var that = this;
+		this.timer = setInterval(function(){
+			that.insertNewLi();
+		},this.speed);
+	},
+	randomLi : function(){
+		var that = this;
+		var oLi = document.createElement("li");
+		var className = this.type[parseInt(Math.random()*3)];
+		oLi.className = className;
+		oLi.onclick = function(){
+			if(that.oStart.turn == "on"){
+				return;
+			}
+			that.findSame(this);
+			that.doRemove();
+		}
+		return oLi;
+	},
+	insertNewLi : function(){
+		if(this.checkOver()){
+			clearInterval(this.timer);
+			this.oStart.turn = "on";
+			alert("你失败了！");
+		}else{
+			for(var i=0;i<10;i++){
+				this.oUl[i].appendChild(this.randomLi());
+			}
+		}
+	},
+	checkOver : function(){
+		for(var i=0;i<10;i++){
+			if(this.oUl[i].getElementsByTagName("li").length>=10){
+				return true;
+			}
+		}
+		return false;
+	},
+	getIndex : function(obj){
+		var i=0;
+		var oTemp = obj;
+		while(obj){
+			if(obj.previousSibling&&obj.previousSibling.nodeType == 1){
+				i++;
+			}
+			obj = obj.previousSibling;
+		}
+		i = oTemp.parentNode.getElementsByTagName("li").length - i;
+		return i;
+	},
+	findSame : function(obj){
+		var that = this;
+		var arr = [getLeft(obj),getRight(obj),getTop(obj),getDown(obj)];
+		for(var i=0;i<4;i++){
+			var oTarget = arr[i]
+			if(oTarget){
+				var oLast = oTarget.parentNode.lastElementChild || oTarget.parentNode.lastChild;
+			}
+			if(!oTarget || oTarget.same || oTarget == oLast) continue;
+			if(oTarget.className == obj.className){
+				oTarget.same = obj.same = 1;
+				that.findSame(oTarget);
+			}
+		}
+		function getLeft(obj){
+			var index = that.getIndex(obj);
+			var oParent = obj.parentNode;
+			if(document.addEventListener){
+				var oUl = oParent.previousElementSibling;
+			}else{
+				var oUl = oParent.previousSibling;
+			}
+			if(!oUl || (oUl.children.length < index)){
+				return null;
+			}else{
+				return oUl.getElementsByTagName("li")[oUl.children.length - index];
+			}
+		}
+		function getRight(obj){
+			var index = that.getIndex(obj);
+			var oParent = obj.parentNode;
+			if(document.addEventListener){
+				var oUl = oParent.nextElementSibling;
+			}else{
+				var oUl = oParent.nextSibling;
+			}
+			if(!oUl || (oUl.children.length < index)){
+				return null;
+			}else{
+				return oUl.getElementsByTagName("li")[oUl.children.length - index];
+			}
+		}
+		function getDown(obj){
+			var oNext = document.addEventListener ? obj.nextElementSibling : obj.nextSibling;
+			if(oNext == (oNext.parentNode.lastElementChild || oNext.parentNode.lastChild)){
+				return null;
+			}else{
+				return oNext;
+			}
+		}
+		function getTop(obj){
+			var oPrev = document.addEventListener ? obj.previousElementSibling : obj.previousSibling;
+			return oPrev ? oPrev : null;
+		}
+	},
+	doRemove : function(){
+		var length = this.li.length;
+		var arr=[];
+		var num = 0;
+		for(var i=0;i<length;i++){
+			var oTarget = this.li[i]
+			if(oTarget && oTarget.same){
+				arr.push(oTarget);
+			}
+		}
+		if(arr.length){
+			for(var i=0;i<arr.length;i++){
+				arr[i].same = 0;
+				$(arr[i]).hide(200,function(){$(this).remove();});
+			}
+			for(var i=0;i<arr.length;i++){
+				num +=i*10;
+			}
+			this.scope +=num;
+			this.hint.innerHTML = "<span>漂亮,得到"+num+"分!</span>";
+		}else{
+			this.hint.innerHTML = "<span>无效!!!</span>"
+		}
+		this.scopeBox.innerHTML = this.scope;
+	}
+}
+var game = new Game();
+game.init();
+var oStart = document.getElementById("start");
+oStart.turn = "on";
+oStart.onclick = function(){
+	if(this.turn=="on"){
+		this.turn = "off";
+		game.init();
+		game.start();
+	}else{
+		return;
+	}
+}
+//game.start();
+</script>
+</body>
+</html>

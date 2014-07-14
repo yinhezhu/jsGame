@@ -1,0 +1,258 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>无标题文档</title>
+<style>
+*{margin:0;padding:0;list-style:none;}
+body{background:black;}
+#main{margin:0 auto; margin-top:20px;width:388px; background:#DDD894;height:620px;overflow:hidden;position:relative;}
+#box{background:url("images/bg1.jpg") no-repeat scroll 0 386px #4EC0CA;height:510px;position:relative;}
+#roud {left:0px;position:absolute;top:510px;height:30px; background:url(images/moveBg.jpg) repeat-x;width:776px;}
+#bird{width:44px;height:30px; background:url(images/brid.gif);position:absolute;left:85px;top:230px;}
+#hint_start{position:absolute;height:230px;width:254px; background:url(images/tap_bg.png);top:130px;left:67px;}
+#scope{position:absolute;top:70px;left:179.5px;color:white;font-size:48px;text-shadow:2px 2px 1px #000;font-family:"Comic Sans MS",cursive;z-index:10;}
+#replay{position:absolute;width:145px;height:83px; background:url(images/play.png);cursor:pointer;left:121.5px;top:425px;display:none;z-index:10;}
+#over{position:absolute;width:263px;height:61px; background:url(images/gameover_tit.png); left:62.5px;top:140px;display:none;z-index:10;}
+#result{position:absolute;width:310px;height:162px; background:url(images/scorebox.png);top:225px;left:39px;display:none;z-index:10;}
+.medal{position:absolute;width:59px;height:59px; top:60px; left:38px;}
+.fen{positon:absolute;width:14px;height:95px; position:absolute;right:38px;top:44px;}
+#scope1,#best{font-size:26px; color:white; text-shadow:2px 2px 1px #000; font-family:"Comic Sans MS",cursive;}
+#scope1{margin-bottom:20px;}
+#colum{position:absolute;height:100%;left:388px;top:0px;width:10000px;}
+#colum li{float:left;margin-right:132px;width:69px;height:100%;position:relative;}
+.up,.down{position:absolute;width:100%; background:url(images/zhuzi_bg.png) repeat-y 2px top;}
+.up{height:200px;top:0px;}
+.up div{position:absolute;left:0px;bottom:0px;height:35px; background:url(images/header2.png);width:100%;}
+.down{height:100px; bottom:0px;}
+.down div{position:absolute;left:0px;top:0px;height:35px; background:url(images/header1.png);width:100%;}
+</style>
+
+</head>
+
+<body>
+<div id="main">
+	<div id="box">
+		<div id="bird"></div>
+		<div id="hint_start"></div>
+		<div id="scope">0</div>
+		<div id="replay"></div>
+		<div id="over"></div>
+		<div id="result">
+			<div class="medal">
+				<img src="images/medal.png" width="59" height="59" /> 
+			</div>
+			<div class="fen">
+				<div id="scope1">0</div>
+				<div id="best">0</div>
+			</div>
+		</div>
+		<ul id="colum">
+			<li>
+				<div class="up">
+					<div></div>
+				</div>
+				<div class="down">
+					<div></div>
+				</div>
+			</li>
+		</ul>
+	</div>
+	<div id="roud"></div>
+</div>
+<audio preload="auto" id="crash">
+	<source src="voice/crash.ogg" />
+</audio>
+<audio preload="auto" id="fly">
+	<source src="voice/fly.ogg" />
+</audio>
+<audio preload="auto" id="gold">
+	<source src="voice/gold.ogg" />
+</audio>
+<audio preload="auto" autoplay id="start">
+	<source src="voice/start.ogg" />
+</audio>
+</body>
+<script>
+function Game(){
+	var dc = document;
+	var gId = "getElementById";
+	this.oScope = dc[gId]("scope");
+	this.roud = dc[gId]("roud");
+	this.bird = dc[gId]("bird");
+	this.colum = dc[gId]("colum");
+	this.hint_start = dc[gId]("hint_start");
+	this.replay = dc[gId]("replay");
+	this.over = dc[gId]("over");
+	this.result = dc[gId]("result");
+	this.oScope1 = dc[gId]("scope1");
+	this.oBest = dc[gId]("best");
+	this.vCrash = dc[gId]("crash");
+	this.vStart = dc[gId]("start");
+	this.vFly = dc[gId]("fly");
+	this.vGold = dc[gId]("gold");
+	this.bestScope = 0;
+	this.scope = 0;
+	this.preTimer = null;
+	this.birdTimer = null;
+	this.birdSpeed = 0;
+	this.ready = true;
+	this.ulTimer = null;
+	this.activeLi = null;
+	this.oUp = null;
+	this.roudMove();
+	this.init();
+}
+Game.prototype = {
+	init : function(){
+		this.colum.style.left = "388px";
+		this.colum.innerHTML = "";
+		this.hint_start.style.display = "block";
+		this.oScope.innerHTML = "0";
+		this.scope = 0;
+		this.over.style.display = "none";
+		this.replay.style.display = "none";
+		this.result.style.display = "none";
+		this.bird.style.top = "230px";
+		this.ready = true;
+		this.canJump = false;
+		this.preMove();
+		this.action();
+	},
+	roudMove : function(){
+		var that = this;
+		setInterval(function(){
+			var left = that.roud.offsetLeft;
+			if(left<=-388){
+				left = 0;
+			}
+			that.roud.style.left = (left - 4) + "px";
+		},30);
+	},
+	preMove : function(){
+		var that = this;
+		var speed = 1;
+		this.preTimer = setInterval(function(){
+			var top = that.bird.offsetTop;
+			if(top <=225 || top >=235){
+				speed*=-1;
+			}
+			that.bird.style.top = top + speed + "px";
+		},50);
+	},
+	start : function(){
+		var that = this;
+		this.ready = false;
+		this.canJump = true;
+		this.hint_start.style.display = "none";
+		clearInterval(this.preTimer);
+		this.preTimer = null;
+		this.birdMove();
+		this.makeLi();
+		this.activeLi = this.colum.firstElementChild || this.colum.firstChild;
+		this.oUp = this.activeLi.firstElementChild || this.activeLi.firstChild;
+		this.ulTimer = setInterval(function(){
+			var left = that.colum.offsetLeft;
+			left -= 4;
+			that.colum.style.left = left + "px";
+			if(that.activeLi.offsetLeft + that.colum.offsetLeft <=25){
+				that.activeLi = that.activeLi.nextElementSibling || that.activeLi.nextSibling;
+				that.oUp = that.activeLi.firstElementChild || that.activeLi.firstChild;
+				that.scope ++;
+				that.oneMove();
+			}
+			if(that.checkPz()){
+				that.end();
+			}
+			
+		},40);
+		this.makeTimer = setInterval(function(){
+			that.makeLi();
+		},1800);
+	},
+	oneMove : function(){
+		this.vGold.play();
+		this.oScope.innerHTML = this.scope;
+	},
+	birdMove : function(){
+		var that = this;
+		var i=0;
+		this.birdTimer = setInterval(function(){
+			that.birdSpeed++;
+			if(that.birdSpeed > 10) that.birdSpeed = 10;
+			var top = that.bird.offsetTop;
+			that.bird.style.top = top + that.birdSpeed + "px";
+			if(top<=0){
+				that.bird.style.top = "0px";
+				that.end();
+			}
+			if(top>=480){
+				that.bird.style.top = "480px"
+				that.end();
+			}
+		},25);
+	},
+	jump : function(){
+		clearInterval(this.birdTimer);
+		this.birdSpeed = -10;
+		this.vFly.play();
+		this.birdMove();
+	},
+	action : function(){
+		var that = this;
+		document.onkeyup = function(ev){
+			var ev = ev || event;
+			if(ev.keyCode == 32){
+				if(that.ready){//新的开始
+					that.start();
+				}else if(that.canJump){//小鸟儿跳跳
+					that.jump();
+				}
+			}
+		}
+	},
+	makeLi : function(){
+		var oLi = document.createElement("li");
+		oLi.innerHTML = '<div class="up"><div></div></div><div class="down"><div></div></div>';
+		var oUp = oLi.firstElementChild || oLi.firstChild;
+		var oDown=oUp.nextElementSibling || oUp.nextSibling;
+		
+		var height = Math.random()*80 + 210;
+		var downHeight = 510 - 130 - height;
+		oUp.style.height = height + "px";
+		oDown.style.height = downHeight + "px";
+		this.colum.appendChild(oLi);
+	},
+	end : function(){
+		var that = this;
+		this.canJump = false;
+		this.vCrash.play();
+		clearInterval(this.birdTimer);
+		clearInterval(this.ulTimer);
+		clearInterval(this.makeTimer)
+		this.birdTimer = null; 
+		this.ulTimer = null;
+		this.replay.style.display = "block";
+		this.over.style.display = "block";
+		this.result.style.display = "block";
+		this.oScope1.innerHTML = this.scope;
+		this.bestScope = this.scope > this.bestScope ? this.scope : this.bestScope
+		this.oBest.innerHTML =  this.bestScope; 
+		this.replay.onclick = function(){
+			that.vStart.play();
+			that.init();
+		}
+	},
+	checkPz : function(){
+		if(this.activeLi.offsetLeft + this.colum.offsetLeft <=129 && (this.bird.offsetTop < this.oUp.offsetHeight || this.bird.offsetTop + 34 > this.oUp.offsetHeight+130)){
+				
+			return true;
+		}
+		
+		return false;
+	}
+}
+
+var game = new Game();
+</script>
+</html>
